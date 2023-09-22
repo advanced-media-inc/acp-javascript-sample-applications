@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Settings for AmiVoice API Chrome extensions Sample</title>
+  <link rel="stylesheet" href="./styles/style.css">
+</head>
+
+<body>
+  <div>
+    <h1>AmiVoice API Speech Recognition Sample</h1>
+    <table>
+      <tbody>
+        <tr>
+          <td colspan="2">
+            <h2>WebSocket音声認識APIの設定</h2>
+          </td>
+        </tr>
+        <tr>
+          <td><label for="appkey">APPKEY(※ 暗号化せずにローカルに保存。取り扱いに注意。)</label></td>
+          <td>
+            <input type="password" id="appkey" spellcheck="false" autocomplete="off">
+          </td>
+        </tr>
+        <tr>
+          <td><label for="grammarFileNames">接続エンジン<label></td>
+          <td>
+            <select name="grammarFileNames" id="grammarFileNames">
+              <option value="-a-general">会話_汎用</option>
+              <option value="-a-general-input">音声入力_汎用</option>
+              <option value="-a-medgeneral">会話_医療</option>
+              <option value="-a-medgeneral-input">音声入力_医療</option>
+              <option value="-a-bizmrreport">会話_製薬</option>
+              <option value="-a-bizmrreport-input">音声入力_製薬</option>
+              <option value="-a-medkarte-input">音声入力_電子カルテ</option>
+              <option value="-a-bizinsurance">会話_保険</option>
+              <option value="-a-bizinsurance-input">音声入力_保険</option>
+              <option value="-a-bizfinance">会話_金融</option>
+              <option value="-a-bizfinance-input">音声入力_金融</option>
+              <option value="-a-general-en">英語_汎用</option>
+              <option value="-a-general-zh">中国語_汎用</option>
+            </select>
+          </td>
+        </tr>
+        <tr>
+          <td><label for="loggingOptOut">サービス向上のための音声と認識結果の提供を行わない(ログ保存なし)</label></td>
+          <td><input type="checkbox" id="loggingOptOut" checked></td>
+        </tr>
+        <tr>
+          <td><label for="keepFillerToken">フィラー単語を保持するかどうか</label></td>
+          <td><input type="checkbox" id="keepFillerToken"></td>
+        </tr>
+        <tr>
+          <td><label for="profileWords">ユーザー登録単語</label></td>
+          <td><input type="text" id="profileWords" spellcheck="false" autocomplete="off"
+              title="{表記1}{半角スペース}{読み1}|{表記2}{半角スペース}{読み2}のように指定します。例:AmiVoice あみぼいす|猫 きかい"></td>
+        </tr>
+        <tr>
+          <td colspan="2">
+            <h2>サンプルプログラムの設定</h2>
+          </td>
+        </tr>
+        <tr>
+          <td><label for="useDisplayMedia">システムまたはブラウザの出力音声を使用する</label></td>
+          <td>
+            <input type="checkbox" id="useDisplayMedia">
+          </td>
+        </tr>
+        <tr>
+          <td><label for="useUserMedia">マイクの入力音声を使用する</label></td>
+          <td>
+            <input type="checkbox" id="useUserMedia">
+          </td>
+        </tr>
+        <tr>
+          <td><label for="useTrace">ブラウザのコンソールにトレースログを出力する</label></td>
+          <td>
+            <input type="checkbox" id="useTrace">
+          </td>
+        </tr>
+        <tr>
+          <td><label for="useNoTranslate">ブラウザの翻訳機能を有効にしたときに認識結果の原文、<br>翻訳結果が両方見られるように認識結果を2回出力する</label></td>
+          <td>
+            <input type="checkbox" id="useNoTranslate">
+          </td>
+        </tr>
+        <tr>
+          <td><label for="useTimestamp">認識結果出力時に現在時刻を出力</label></td>
+          <td>
+            <input type="checkbox" id="useTimestamp">
+          </td>
+        </tr>
+        <tr>
+          <td><label for="useSpoken">認識結果を出力するときに「読み」も一緒に出力する</label></td>
+          <td>
+            <input type="checkbox" id="useSpoken">
+          </td>
+        </tr>
+        <tr>
+          <td><label for="useOpusRecorder">音声データをサーバーに送信する前にOgg Opus形式に圧縮する</label></td>
+          <td><input type="checkbox" id="useOpusRecorder" checked></td>
+        </tr>
+        <tr>
+          <td colspan="2">
+            <div style="font-size: smaller; margin-left: 20px;">
+              <div>Ogg Opus形式への圧縮には下記のプログラムを使用しています。</div>
+              <div>
+                Opus Recorder License (MIT)<br>
+                Original Work Copyright © 2013 Matt Diamond<br>
+                Modified Work Copyright © 2014 Christopher Rudmin<br>
+                <a href="https://github.com/chris-rudmin/opus-recorder/blob/v8.0.5/LICENSE.md" target="_blank"
+                  rel="noopener noreferrer">https://github.com/chris-rudmin/opus-recorder/blob/v8.0.5/LICENSE.md</a>
+              </div>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    <button id="saveButton" type="button">保存</button>
+  </div>
+  <script src="./scripts/options.js"></script>
+
+</body>
+
+</html>
