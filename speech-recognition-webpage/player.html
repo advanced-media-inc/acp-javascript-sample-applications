@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>AmiVoice API Speech Recognition Sample Audio Player</title>
+    <style>
+        * {
+            font-family: 'Hiragino Kaku Gothic ProN', 'Helvetica', 'Verdana', 'Lucida Grande', 'ヒラギノ角ゴ ProN', sans-serif;
+        }
+
+        video {
+            background: black;
+            min-width: 70%;
+            min-height: 70%;
+        }
+
+        .chapters {
+            width: 30%;
+            height: 100%;
+            overflow-y: scroll;
+            top: 0px;
+            right: 0px;
+            position: absolute;
+            background: black;
+            float: right;
+        }
+
+        .chapter {
+            background: black;
+            color: white;
+            border: solid;
+        }
+
+        .chapter:hover {
+            background: skyblue;
+        }
+
+        #player {
+            width: 100%;
+        }
+
+        .dropbox {
+            border: solid 1px #000;
+            border-radius: 10px;
+            background: lightgray;
+            padding: 10px;
+            font-size: smaller;
+        }
+
+        button {
+            display: block;
+            width: 250px;
+            margin: 20px auto;
+            padding: 5px 0 5px 20px;
+            border-radius: 3px;
+            text-align: center;
+            text-decoration: none;
+            font-weight: bolder;
+            background-size: auto;
+            background-position: 25% center;
+            cursor: pointer;
+            border: solid 1px #3f3f3f;
+        }
+
+        button:hover {
+            color: #ffffff;
+            background-color: #3f3f3f;
+            background-repeat: no-repeat;
+        }
+
+        .selected-file-name {
+            height: 20px;
+            overflow: hidden;
+        }
+    </style>
+</head>
+
+<body>
+    <details open="false">
+        <summary>このページについて</summary>
+        <div>オーディオファイルを選択した後にVTTファイル、認識結果JSONを選択してください。</div>
+        <div>VTTファイルを選択すると字幕として読み込まれます。</div>
+        <div>音声認識結果JSONは、非同期HTTP音声認識APIの認識結果JSONまたWebSocket音声認識APIの認識結果JSONを配列にまとめたJSONファイルを選択してください。</div>
+        <div>同期HTTP音声認識APIの認識結果JSONは読めません。</div>
+        <br>
+    </details>
+    <div>
+        <details open="false">
+            <summary>ファイル選択</summary>
+            <table>
+                <tbody>
+                    <tr>
+                        <td><label for="audiofile">オーディオファイル:</label></td>
+                        <td><label for="vttfile">VTTファイル:</label></td>
+                        <td><label for="resultjson">音声認識結果JSON:</label></td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <div class="selected-file-name" id="audiofile-selected"></div>
+                        </td>
+                        <td>
+                            <div class="selected-file-name" id="vttfile-selected"></div>
+                        </td>
+                        <td>
+                            <div class="selected-file-name" id="resultjson-selected"></div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <input id="audiofile" type="file" accept=".wav,.mp3,.flac,.opus,.m4a,.mp4,.webm" style="display:none;">
+                            <div id="dropbox-audiofile" class="dropbox">
+                                <p>ここにファイルをドラッグアンドドロップ、またはクリックしてファイルを選択してください。</p>
+                            </div>
+                        </td>
+                        <td>
+                            <input id="vttfile" type="file" accept=".vtt" style="display:none;">
+                            <div id="dropbox-vttfile" class="dropbox">
+                                <p>ここにファイルをドラッグアンドドロップ、またはクリックしてファイルを選択してください。</p>
+                            </div>
+                        </td>
+                        <td>
+                            <input id="resultjson" type="file" accept=".json" style="display:none;">
+                            <div id="dropbox-resultjson" class="dropbox">
+                                <p>ここにファイルをドラッグアンドドロップ、またはクリックしてファイルを選択してください。</p>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </details>
+        <div>
+            <div id="playerParent">
+                <video id="player"></video>
+                <span id="chapters"></span>
+            </div>
+        </div>
+
+        <script>
+            (function () {
+                const audioFileElement = document.getElementById("audiofile");
+                const vttFileElement = document.getElementById('vttfile');
+                const resultJsonFileElement = document.getElementById('resultjson');
+                const dropboxAudioFileElement = document.getElementById("dropbox-audiofile");
+                const dropboxVttFileElement = document.getElementById("dropbox-vttfile");
+                const dropboxResultJsonFileElement = document.getElementById("dropbox-resultjson");
+
+                const selectedAudioFileElement = document.getElementById("audiofile-selected")
+                const selectedVttFileElement = document.getElementById("vttfile-selected");
+                const selectedResultJsonFileElement = document.getElementById("resultjson-selected");
+
+                const playerParentElement = document.getElementById("playerParent");
+                const playerElement = document.getElementById('player');
+                const chaptersElement = document.getElementById("chapters");
+
+
+                // 音声ファイルのドラッグアンドドロップ設定
+                dropboxAudioFileElement.addEventListener("dragenter", dragenter, false);
+                dropboxAudioFileElement.addEventListener("dragover", dragover, false);
+                dropboxAudioFileElement.addEventListener("drop", (event) => {
+                    event.stopPropagation();
+                    event.preventDefault();
+                    const dt = event.dataTransfer;
+                    if (dt.files.length == 0) {
+                        return;
+                    }
+                    const file = dt.files[0];
+                    handleAudioFile(file);
+                }, false);
+                dropboxAudioFileElement.addEventListener("click", (event) => {
+                    audioFileElement.click();
+                    event.preventDefault();
+                }, false);
+
+                // 字幕ファイルのドラッグアンドドロップ設定
+                dropboxVttFileElement.addEventListener("dragenter", dragenter, false);
+                dropboxVttFileElement.addEventListener("dragover", dragover, false);
+                dropboxVttFileElement.addEventListener("drop", (event) => {
+                    event.stopPropagation();
+                    event.preventDefault();
+                    const dt = event.dataTransfer;
+                    if (dt.files.length == 0) {
+                        return;
+                    }
+                    const file = dt.files[0];
+                    handleVttFile(file);
+                }, false);
+
+                dropboxVttFileElement.addEventListener("click", (event) => {
+                    vttFileElement.click();
+                    event.preventDefault();
+                }, false);
+
+                // 音声認識結果JSONファイルのドラッグアンドドロップ設定
+                dropboxResultJsonFileElement.addEventListener("dragenter", dragenter, false);
+                dropboxResultJsonFileElement.addEventListener("dragover", dragover, false);
+                dropboxResultJsonFileElement.addEventListener("drop", (event) => {
+                    event.stopPropagation();
+                    event.preventDefault();
+                    const dt = event.dataTransfer;
+                    if (dt.files.length == 0) {
+                        return;
+                    }
+                    const file = dt.files[0];
+                    handleResultJsonFile(file);
+                }, false);
+                dropboxResultJsonFileElement.addEventListener("click", (event) => {
+                    resultJsonFileElement.click();
+                    event.preventDefault();
+                }, false);
+
+                // dragenterハンドラ
+                function dragenter(event) {
+                    event.stopPropagation();
+                    event.preventDefault();
+                }
+
+                // dragoverハンドラ
+                function dragover(event) {
+                    event.stopPropagation();
+                    event.preventDefault();
+                }
+
+                // プレイヤーエレメントの設定
+                playerElement.style.height = "99%";
+                playerElement.style.width = "100%";
+                playerElement.controlsList = "nofullscreen";
+                playerElement.addEventListener("mouseover", function () {
+                    this.setAttribute("controls", "");
+                });
+                playerElement.addEventListener("mouseout", function () {
+                    this.removeAttribute("controls");
+                });
+                
+                chaptersElement.className = "chapters";
+                chaptersElement.style.display = "none";
+                playerParentElement.addEventListener("click", () => {
+                    if (document.fullscreenElement === playerParentElement) {
+                        if (chaptersElement.style.display === "none") {
+                            if (chaptersElement.hasChildNodes()) {
+                                chaptersElement.style.display = "";
+                                playerElement.style.width = "70%";
+                            }
+                        } else {
+                            chaptersElement.style.display = "none";
+                            playerElement.style.width = "100%";
+                        }
+                    }
+                    if (document.fullscreenElement !== null) {
+                        return;
+                    }
+                    if (playerParentElement.requestFullscreen) {
+                        playerParentElement.requestFullscreen();
+                    } else if (playerParentElement.webkitRequestFullscreen) {
+                        playerParentElement.webkitRequestFullscreen();
+                    } else if (playerParentElement.mozRequestFullScreen) {
+                        playerParentElement.mozRequestFullScreen();
+                    }
+                });
+                playerParentElement.addEventListener("fullscreenchange", (event) => {
+                    chaptersElement.style.display = "none";
+                    playerElement.style.width = "100%";
+                });
+
+                // オーディオファイルの変更時処理
+                audioFileElement.addEventListener('change', event => {
+                    let input = event.target;
+                    if (input.files.length == 0) {
+                        return;
+                    }
+                    let file = input.files[0];
+                    handleAudioFile(file);
+                    input.value = "";
+                });
+
+                /**
+                 * オーディオファイルが選択されたときの処理を行います。
+                 * @param {object} file ファイル 
+                 */
+                function handleAudioFile(file) {
+                    if (!file.type.match('audio.*') && !file.type.match('video.*')) {
+                        alert("オーディオファイルまたビデオファイルを選択してください。");
+                        return;
+                    }
+                    if (!(new RegExp("\\.(?:wav|mp3|flac|opus|m4a|mp4|webm)$", "i").test(file.name))) {
+                        alert(".mp3,.wav,.flac,.opus,.m4a,.mp4,.webmファイルを選択してください。");
+                        return;
+                    }
+                    selectedAudioFileElement.textContent = file.name;
+                    playerElement.src = URL.createObjectURL(file);
+                    let track = document.getElementById('subtitle');
+                    if (track != null) {
+                        track.src = URL.createObjectURL(new Blob(["WEBVTT\n\n"], { type: "text/vtt" }));
+                        for (let index = 0; index < playerElement.textTracks.length; index++) {
+                            playerElement.textTracks[index].mode = 'hidden';
+                        }
+                    }
+                    chaptersElement.innerHTML = "";
+                    selectedVttFileElement.textContent = "";
+                    selectedResultJsonFileElement.textContent = "";
+                }
+
+                // 字幕ファイルの変更時処理
+                vttFileElement.addEventListener('change', event => {
+                    let input = event.target;
+                    if (input.files.length == 0) {
+                        return;
+                    }
+                    let file = input.files[0];
+                    handleVttFile(file);
+                    input.value = "";
+                });
+
+                /**
+                 * 字幕ファイルが選択されたときの処理を行います。
+                 * @param {object} file ファイルオブジェクト
+                 */
+                function handleVttFile(file) {
+                    if (!(new RegExp("\\.vtt$", "i").test(file.name))) {
+                        alert(".vttファイルを選択してください。");
+                        return;
+                    }
+                    selectedVttFileElement.textContent = file.name;
+                    const reader = new FileReader();
+                    reader.onload = () => {
+                        let track = document.getElementById('subtitle');
+                        if (track == null) {
+                            track = document.createElement('track');
+                            track.id = 'subtitle';
+                            track.setAttribute('default', '');
+                            playerElement.appendChild(track);
+                        }
+                        let vttUrl = reader.result;
+                        track.src = vttUrl;
+                        for (let index = 0; index < playerElement.textTracks.length; index++) {
+                            playerElement.textTracks[index].mode = 'showing';
+                        }
+                    };
+                    reader.readAsDataURL(file);
+                }
+
+                // 音声認識結果JSONファイルの変更時処理
+                resultJsonFileElement.addEventListener('change', event => {
+                    let input = event.target;
+                    if (input.files.length == 0) {
+                        return;
+                    }
+                    let file = input.files[0];
+                    handleResultJsonFile(file);
+                    input.value = "";
+                });
+
+                /**
+                 * 音声認識結果JSONファイルが選択されたときの処理を行います。
+                 * @param {object} ファイル
+                 */
+                function handleResultJsonFile(file) {
+                    if (!(new RegExp("\\.json$", "i").test(file.name))) {
+                        alert(".jsonファイルを選択してください。");
+                        return;
+                    }
+                    selectedResultJsonFileElement.textContent = file.name;
+                    chaptersElement.innerHTML = "";
+                    const reader = new FileReader();
+                    reader.onload = () => {
+                        try {
+                            // Chapter作成
+                            let json = JSON.parse(reader.result);
+                            let segments = [];
+                            if (json.segments) {
+                                segments = json.segments;
+                            } else {
+                                segments = json;
+                            }
+                            let index = 0;
+                            let chaptersHtml = '';
+                            for (let segment of segments) {
+                                index++;
+                                chaptersHtml += '<div class="chapter"'
+                                    + '" segment-starttime="'
+                                    + segment.results[0].starttime + '">'
+                                    + index + ". " + msToVttTimestamp(segment.results[0].starttime)
+                                    + '<br>' + sanitize_(segment.results[0].text)
+                                    + '</div>';
+                            }
+                            if (index > 0) {
+                                chaptersElement.innerHTML = chaptersHtml;
+                                let chapterItems = chaptersElement.getElementsByClassName("chapter");
+                                for (let chapter of chapterItems) {
+                                    chapter.addEventListener("click", (e) => {
+                                        e.stopPropagation();
+                                        e.preventDefault();
+                                        playerElement.currentTime = chapter.getAttribute("segment-starttime") / 1000;
+                                    });
+                                }
+                            }
+                        } catch (e) {
+                            alert('音声認識結果JSONを読み込むことができませんでした。');
+                        }
+                    }
+                    reader.readAsText(file);
+                }
+
+                /**
+                 * 文字列のHTMLエスケープを行います
+                 * @param {string} s 文字列
+                 * @returns エスケープした文字列
+                 */
+                function sanitize_(s) {
+                    return s.replace(/&/g, '&amp;')
+                        .replace(/</g, '&lt;')
+                        .replace(/>/g, '&gt;')
+                        .replace(/'/g, '&apos;')
+                        .replace(/"/g, '&quot;');
+                }
+
+                /**
+                 * 簡易的なmsec→hh:mm:ss.ttt(WebVTTのタイムスタンプ)変換を行います
+                 * @param {number} duration 経過時間ミリ秒
+                 * @returns hh:mm:ss.ttt形式の文字列
+                 */
+                function msToVttTimestamp(duration) {
+                    const hour = Math.floor(duration / 3600000);
+                    const minute = Math.floor((duration - 3600000 * hour) / 60000);
+
+                    const hh = hour.toString().padStart(2, '0');
+                    const mm = minute.toString().padStart(2, '0');
+                    const ms = (duration % 60000).toString().padStart(5, '0');
+
+                    return hh + ":" + mm + ":" + ms.slice(0, 2) + "." + ms.slice(2, 5);
+                }
+            })();
+        </script>
+</body>
+
+</html>

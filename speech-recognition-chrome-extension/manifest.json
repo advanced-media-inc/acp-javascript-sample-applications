@@ -1,0 +1,38 @@
+{
+  "name": "AmiVoice API Speech Recognition Sample",
+  "action": {
+    "default_title": "AmiVoice API Speech Recognition Sample",
+    "default_popup": "popup.html"
+  },
+  "manifest_version": 3,
+  "version": "0.1.0",
+  "description": "AmiVoice API Speech Recognition Sample",
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "storage"
+  ],
+  "options_page": "options.html",
+  "content_scripts": [
+    {
+      "matches": [
+        "https://*/*"
+      ],
+      "js": [
+        "scripts/opus-encoder-wrapper.js",
+        "lib/wrp/recorder.js",
+        "lib/wrp/wrp.js",
+        "scripts/view.js"
+      ]
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "lib/wrp/processor.js",
+        "lib/opus-recorder/encoderWorker.min.js"
+      ],
+      "matches": ["https://*/*"]
+    }
+  ]
+}
