@@ -306,7 +306,7 @@ var Recorder = function () {
 				var pcmDataOffset = (ima_state_ > 0) ? 1 + 16 : 1;
 				var pcmDataIndex = pcmDataOffset;
 				var index = 0;
-				var pcmData = new Uint8Array(audioData.length * 2);
+				var pcmData = new Uint8Array((audioData.length / audioDecimatationFactor_ | 0) * 2);
 				for (var temporaryAudioDataIndex = audioDecimatationFactor_ - 1; temporaryAudioDataIndex + 20 < temporaryAudioData_.length; temporaryAudioDataIndex += audioDecimatationFactor_) {
 					var pcm_float = 0.0;
 					for (var i = 0; i <= 20; i++) {
