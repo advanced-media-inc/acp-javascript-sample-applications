@@ -125,7 +125,7 @@ OpusEncoderWrapper.prototype.start = function () {
 
             if (that.isDebug) {
                 var fileName = new Date().toISOString().replaceAll(/[:.]/g, "") + ".opus";
-                var dataBlob = new Blob([that.totalArray], { type: "audio/ogg; encodes=opus" });
+                var dataBlob = new Blob([that.totalArray], { type: "audio/ogg; codecs=opus" });
                 var url = URL.createObjectURL(dataBlob);
                 var audio = document.createElement('audio');
                 audio.controls = true;
